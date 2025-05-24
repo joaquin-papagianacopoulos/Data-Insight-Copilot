@@ -23,7 +23,7 @@
 
 ![Demo GIF](demo.gif)
 
-[Ver video completo en YouTube](#)
+#[Ver video completo en YouTube](#)
 
 ## 🛠️ Instalación
 
