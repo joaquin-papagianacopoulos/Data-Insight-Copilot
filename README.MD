@@ -19,11 +19,11 @@
 - 📄 **Reportes PDF**: Genera reportes profesionales con un click
 - 🚀 **Interfaz intuitiva**: Diseño moderno y fácil de usar
 
-## 🎬 Demo
+<!-- ## 🎬 Demo
 
 ![Demo GIF](demo.gif)
 
-#[Ver video completo en YouTube](#)
+[Ver video completo en YouTube](#) -->
 
 ## 🛠️ Instalación
 
