@@ -169,9 +169,9 @@ Distribuido bajo la licencia MIT. Ver `LICENSE` para más información.
 ## 👥 Autor
 
 **Tu Nombre**
-- LinkedIn: [tu-linkedin](https://linkedin.com/in/tu-linkedin)
-- GitHub: [@tu-usuario](https://github.com/tu-usuario)
-- Email: tu-email@ejemplo.com
+- LinkedIn: [Joaquin Papagianacopoulos](https://linkedin.com/in/joaquinpapagianacopoulos)
+- GitHub: [@joaquin-papagianacopoulos](https://github.com/joaquin-papagianacopoulos)
+- Email: joaquinpapagianacopoulos@gmail.com
 
 ## 🙏 Agradecimientos
 
@@ -182,5 +182,5 @@ Distribuido bajo la licencia MIT. Ver `LICENSE` para más información.
 ---
 
 <div align="center">
-  Hecho con ❤️ y ☕ por [Tu Nombre]
+  Hecho con ❤️ y ☕ por Joaquin
 </div>
