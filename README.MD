@@ -1,151 +1,186 @@
-# 🧠 Data Insight Copilot
+# 🔥 Data Insight Copilot
 
-Un asistente inteligente que analiza archivos CSV, detecta patrones automáticamente y genera reportes con insights accionables usando IA.
+<div align="center">
+  <img src="https://img.shields.io/badge/Python-3.8+-blue.svg" alt="Python">
+  <img src="https://img.shields.io/badge/Streamlit-1.32.0-red.svg" alt="Streamlit">
+  <img src="https://img.shields.io/badge/AI-Groq-green.svg" alt="Groq">
+  <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License">
+</div>
 
-## 🚀 Características
+## 📊 Descripción
 
-- **Análisis Automático**: Carga un CSV y obtén insights inmediatos
-- **Detección de Anomalías**: Identifica outliers automáticamente  
-- **Visualizaciones Inteligentes**: Gráficos generados según el tipo de datos
-- **Limpieza de Datos**: Preprocessing automático
-- **Insights con IA**: Resúmenes en lenguaje natural (próximamente)
-- **Interfaz Intuitiva**: Streamlit responsive y fácil de usar
+**Data Insight Copilot** es un asistente inteligente que analiza archivos CSV automáticamente, detecta patrones, genera visualizaciones y crea reportes profesionales usando IA.
 
-## 📋 Instalación
+### ✨ Características principales
+
+- 🧠 **Análisis con IA**: Usa Groq AI para generar insights en lenguaje natural
+- 📈 **Visualizaciones automáticas**: Genera gráficos relevantes sin configuración
+- 🎯 **Detección de anomalías**: Identifica outliers con múltiples algoritmos
+- 📄 **Reportes PDF**: Genera reportes profesionales con un click
+- 🚀 **Interfaz intuitiva**: Diseño moderno y fácil de usar
+
+## 🎬 Demo
+
+![Demo GIF](demo.gif)
+
+[Ver video completo en YouTube](#)
+
+## 🛠️ Instalación
+
+### Requisitos previos
+- Python 3.8 o superior
+- Cuenta gratuita en [Groq](https://console.groq.com)
 
 ### Pasos de instalación
 
+1. **Clonar el repositorio**
 ```bash
-# 1. Clonar el repositorio
-git clone https://github.com/tu-usuario/data-insight-copilot.git
+git clone https://github.com/joaquin-papagianacopoulos/data-insight-copilot.git
 cd data-insight-copilot
+```
 
-# 2. Crear entorno virtual
+2. **Crear entorno virtual**
+```bash
 python -m venv venv
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process
-venv\Scripts\activate
+source venv/bin/activate  # En Windows: venv\Scripts\activate
+```
 
-# 3. Instalar dependencias
+3. **Instalar dependencias**
+```bash
 pip install -r requirements.txt
+```
 
-# 4. Ejecutar la aplicación
+4. **Configurar API Key**
+```bash
+cp .env.example .env
+# Editar .env y agregar tu GROQ_API_KEY
+```
+
+5. **Ejecutar la aplicación**
+```bash
 streamlit run app.py
 ```
 
-## 🎯 Uso Rápido
+## 📝 Uso
 
-1. **Ejecutar la app**: `streamlit run app.py`
-2. **Subir CSV**: Usa el panel lateral para cargar tu archivo
-3. **Explorar**: Revisa automáticamente las visualizaciones y estadísticas
-4. **Analizar**: Detecta outliers y patrones automáticamente
+1. **Cargar datos**: Arrastrá tu archivo CSV en la barra lateral
+2. **Analizar**: Hacé click en "🚀 Analizar con IA"
+3. **Explorar**: Navegá por las pestañas para ver insights y visualizaciones
+4. **Exportar**: Descargá el reporte en PDF
 
-### Datos de Ejemplo
-Si no tienes un CSV, puedes usar los datos de ejemplo incluidos:
-- ✅ Marca "Usar datos de ejemplo" en la barra lateral
-- Explora las funcionalidades con datos sintéticos realistas
+### Ejemplo de análisis
 
-## 📊 Funcionalidades Actuales (Día 1)
+```python
+# El sistema detecta automáticamente:
+- Tipos de datos y calidad
+- Patrones y tendencias
+- Correlaciones entre variables
+- Valores atípicos
+- Recomendaciones accionables
+```
 
-### ✅ Implementado
-- [x] Carga de archivos CSV
-- [x] Vista previa de datos
-- [x] Estadísticas descriptivas automáticas
-- [x] Detección de valores faltantes
-- [x] Visualizaciones automáticas (histogramas, correlaciones, boxplots)
-- [x] Detección de outliers (IQR)
-- [x] Información de columnas y tipos de datos
-- [x] Datasets de ejemplo para testing
-- [x] Interfaz responsive con Streamlit
-
-### 🔄 En Desarrollo (Próximos días)
-- [ ] Agente IA con LangChain/LangGraph (Día 2)
-- [ ] Generación de insights con GPT (Día 2-3)
-- [ ] Reportes automatizados en PDF (Día 4)
-- [ ] Análisis predictivo básico (Día 4)
-- [ ] Recomendaciones de acciones (Día 5)
-
-## 🛠️ Arquitectura Técnica
+## 🏗️ Arquitectura
 
 ```
 data-insight-copilot/
-├── app.py                  # Streamlit app principal
-├── data_utils.py          # Utilidades de análisis de datos
-├── agent_graph.py         # Flujo de agentes IA (próximamente)
-├── prompts/               # Templates de prompts para IA
-│   └── analyst_prompt.txt
-├── outputs/               # Reportes generados
-├── examples/              # Datasets de ejemplo
-├── requirements.txt       # Dependencias Python
-└── README.md             # Esta documentación
+├── app.py                    # Aplicación principal Streamlit
+├── smart_analyzer.py         # Motor de análisis con IA
+├── visualization_engine.py   # Generador de visualizaciones
+├── report_generator.py       # Generador de reportes PDF
+├── config.py                # Configuración de modelos
+├── requirements.txt         # Dependencias
+├── .env.example            # Template de variables de entorno
+└── README.md              # Este archivo
 ```
 
-## 🔧 Tecnologías
+### Flujo de datos
+
+```mermaid
+graph LR
+    A[CSV File] --> B[Data Loader]
+    B --> C[Smart Analyzer]
+    C --> D[Groq AI]
+    D --> E[Insights]
+    B --> F[Visualization Engine]
+    F --> G[Charts]
+    E --> H[Report Generator]
+    G --> H
+    H --> I[PDF Report]
+```
+
+## 🤖 Tecnologías utilizadas
 
 - **Frontend**: Streamlit
-- **Análisis**: Pandas, NumPy
-- **Visualización**: Plotly, Matplotlib, Seaborn  
-- **IA**: LangChain + LangGraph (próximamente)
-- **LLM**: OpenAI GPT (próximamente)
+- **IA**: Groq (Llama 3.1)
+- **Visualización**: Plotly, Matplotlib, Seaborn
+- **Análisis**: Pandas, NumPy, SciPy, Scikit-learn
+- **Reportes**: ReportLab
+- **LLM Framework**: LangChain
 
-## 📝 Ejemplos de Uso
+## 📊 Tipos de análisis
 
-### Cargar y Analizar Ventas
-```python
-# Los datos se cargan automáticamente desde la interfaz
-# El análisis incluye:
-# - Estadísticas descriptivas
-# - Detección de outliers
-# - Correlaciones entre variables
-# - Visualizaciones automáticas
-```
+### 1. Análisis de calidad
+- Detección de valores faltantes
+- Identificación de tipos de datos incorrectos
+- Evaluación de consistencia
 
-### Insights Automáticos Generados
-- Calidad de datos (% valores faltantes)
-- Distribución de variables numéricas
-- Correlaciones fuertes entre variables  
-- Detección de anomalías
-- Recomendaciones de limpieza
+### 2. Análisis estadístico
+- Estadísticas descriptivas
+- Distribuciones
+- Correlaciones
 
-## 🚀 Roadmap de Desarrollo
+### 3. Detección de anomalías
+- IQR (Interquartile Range)
+- Z-Score
+- Isolation Forest
 
-### Día 1 ✅ (Completado)
-- Setup del proyecto
-- Interfaz básica de Streamlit
-- Carga y análisis de CSV
-- Visualizaciones automáticas
+### 4. Visualizaciones
+- Histogramas y distribuciones
+- Matriz de correlación
+- Box plots y violin plots
+- Series temporales
+- Análisis categórico
 
-### Día 2 🔄 (En progreso)
-- Integración de LangChain
-- Agente IA para análisis
-- Generación de insights con GPT
+## 🚀 Roadmap
 
-### Día 3
-- Detección avanzada de patrones
-- Visualizaciones contextualizadas
-- Insights más sofisticados
+- [x] MVP con análisis básico
+- [x] Visualizaciones automáticas
+- [x] Detección de anomalías
+- [x] Generación de PDF
+- [ ] Soporte para múltiples idiomas
+- [ ] Análisis predictivo
+- [ ] Integración con bases de datos
+- [ ] API REST
 
-### Día 4
-- Generación de reportes PDF
-- Análisis predictivo básico
-- Refinamiento de prompts
+## 🤝 Contribuir
 
-### Día 5
-- Deploy y documentación final
-- Video demo
-- Optimizaciones finales
+Las contribuciones son bienvenidas! Por favor:
 
-## 🤝 Contribuciones
-
-Este es un proyecto en desarrollo activo. Ideas y sugerencias son bienvenidas.
+1. Fork el proyecto
+2. Crea tu feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la branch (`git push origin feature/AmazingFeature`)
+5. Abrí un Pull Request
 
 ## 📄 Licencia
 
-MIT License - Ver archivo LICENSE para detalles.
+Distribuido bajo la licencia MIT. Ver `LICENSE` para más información.
+
+## 👥 Autor
+
+**Tu Nombre**
+- LinkedIn: [tu-linkedin](https://linkedin.com/in/tu-linkedin)
+- GitHub: [@tu-usuario](https://github.com/tu-usuario)
+- Email: tu-email@ejemplo.com
+
+## 🙏 Agradecimientos
+
+- [Groq](https://groq.com) por proporcionar acceso gratuito a su API
+- [Streamlit](https://streamlit.io) por el framework
+- [Plotly](https://plotly.com) por las visualizaciones interactivas
 
 ---
 
-**Desarrollado con ❤️ para demostrar capacidades de IA aplicada a análisis de datos** Prerrequisitos
-- Python 3.8+
-- pip
-
-###
+<div align="center">
+  Hecho con ❤️ y ☕ por [Tu Nombre]
+</div>

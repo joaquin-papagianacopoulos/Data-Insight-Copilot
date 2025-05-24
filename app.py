@@ -1,272 +1,432 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 import plotly.express as px
-import plotly.graph_objects as go
-from io import StringIO
+from smart_analyzer import analyze_with_smart_analyzer
+from visualization_engine import VisualizationEngine
+from report_generator import PDFReportGenerator
+from data_validator import DataValidator
+import time
 import os
-from datetime import datetime
 
 # Configuración de la página
 st.set_page_config(
     page_title="Data Insight Copilot",
-    page_icon="🧠",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_icon="📊",
+    layout="wide"
 )
 
 # CSS personalizado
 st.markdown("""
 <style>
     .main-header {
-        font-size: 3rem;
-        font-weight: bold;
-        color: #1f77b4;
         text-align: center;
-        margin-bottom: 2rem;
-    }
-    .metric-card {
-        background-color: #f0f2f6;
-        padding: 1rem;
-        border-radius: 10px;
-        border-left: 5px solid #1f77b4;
+        color: #1e88e5;
+        padding: 1rem 0;
     }
     .insight-box {
-        background-color: ##552d7a;
+        background-color: #f0f7ff;
         padding: 1rem;
         border-radius: 10px;
-        border: 1px solid #b3d9ff;
         margin: 1rem 0;
+        border-left: 4px solid #1e88e5;
+    }
+    .metric-card {
+        background-color: #ffffff;
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        text-align: center;
     }
 </style>
 """, unsafe_allow_html=True)
 
-def load_sample_data():
-    """Genera datos de ejemplo para testing"""
-    np.random.seed(42)
-    dates = pd.date_range('2023-01-01', periods=100, freq='D')
-    data = {
-        'fecha': dates,
-        'ventas': np.random.normal(1000, 200, 100) + np.random.exponential(50, 100),
-        'clientes': np.random.poisson(25, 100),
-        'categoria': np.random.choice(['A', 'B', 'C'], 100, p=[0.5, 0.3, 0.2]),
-        'region': np.random.choice(['Norte', 'Sur', 'Centro'], 100, p=[0.4, 0.35, 0.25])
-    }
-    return pd.DataFrame(data)
+# Header
+st.markdown("<h1 class='main-header'>🔥 Data Insight Copilot</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #666;'>Análisis inteligente de datos con IA</p>", unsafe_allow_html=True)
 
-def analyze_basic_stats(df):
-    """Análisis estadístico básico"""
-    numeric_cols = df.select_dtypes(include=[np.number]).columns
-    stats = {}
+# Sidebar
+with st.sidebar:
+    st.header("📁 Cargar Datos")
+    uploaded_file = st.file_uploader(
+        "Seleccioná tu archivo CSV",
+        type=['csv'],
+        help="Máximo 200MB"
+    )
     
-    for col in numeric_cols:
-        stats[col] = {
-            'mean': df[col].mean(),
-            'median': df[col].median(),
-            'std': df[col].std(),
-            'min': df[col].min(),
-            'max': df[col].max(),
-            'missing': df[col].isnull().sum()
-        }
+    st.divider()
     
-    return stats
+    st.header("⚙️ Configuración")
+    analysis_depth = st.select_slider(
+        "Profundidad del análisis",
+        options=["Rápido", "Normal", "Profundo"],
+        value="Normal"
+    )
+    
+    generate_visualizations = st.checkbox("Generar visualizaciones", value=True)
+    
+    st.divider()
+    
+    st.info("""
+    **¿Cómo funciona?**
+    1. Subí tu CSV
+    2. Los agentes IA analizan los datos
+    3. Obtenés insights y recomendaciones
+    4. Descargá el reporte final
+    """)
 
-def detect_outliers(df, column):
-    """Detecta outliers usando IQR"""
-    if column not in df.select_dtypes(include=[np.number]).columns:
-        return []
-    
-    Q1 = df[column].quantile(0.25)
-    Q3 = df[column].quantile(0.75)
-    IQR = Q3 - Q1
-    
-    lower_bound = Q1 - 1.5 * IQR
-    upper_bound = Q3 + 1.5 * IQR
-    
-    outliers = df[(df[column] < lower_bound) | (df[column] > upper_bound)]
-    return outliers
-
-def create_visualizations(df):
-    """Genera visualizaciones automáticas"""
-    numeric_cols = df.select_dtypes(include=[np.number]).columns
-    categorical_cols = df.select_dtypes(include=['object']).columns
-    
-    visualizations = []
-    
-    # Histogramas para columnas numéricas
-    for col in numeric_cols[:3]:  # Limitar a 3 para no saturar
-        fig = px.histogram(df, x=col, title=f'Distribución de {col}')
-        visualizations.append(('histogram', col, fig))
-    
-    # Gráficos de barras para categóricas
-    for col in categorical_cols[:2]:
-        if df[col].nunique() <= 10:  # Solo si no hay demasiadas categorías
-            value_counts = df[col].value_counts()
-            fig = px.bar(x=value_counts.index, y=value_counts.values, 
-                        title=f'Frecuencia de {col}')
-            visualizations.append(('bar', col, fig))
-    
-    # Correlación si hay múltiples columnas numéricas
-    if len(numeric_cols) > 1:
-        corr_matrix = df[numeric_cols].corr()
-        fig = px.imshow(corr_matrix, text_auto=True, aspect="auto",
-                       title="Matriz de Correlación")
-        visualizations.append(('correlation', 'correlation', fig))
-    
-    return visualizations
-
-def main():
-    # Header principal
-    st.markdown('<h1 class="main-header">🧠 Data Insight Copilot</h1>', unsafe_allow_html=True)
-    st.markdown("### Analiza tus datos CSV con inteligencia artificial")
-    
-    # Sidebar
-    st.sidebar.header("⚙️ Configuración")
-    
-    # Opción para datos de ejemplo
-    use_sample = st.sidebar.checkbox("Usar datos de ejemplo", value=False)
-    
-    if use_sample:
-        df = load_sample_data()
-        st.sidebar.success("✅ Datos de ejemplo cargados")
-    else:
-        # Upload de archivo
-        uploaded_file = st.sidebar.file_uploader(
-            "Sube tu archivo CSV",
-            type=['csv'],
-            help="Formatos soportados: CSV"
-        )
+# Main content
+if uploaded_file is not None:
+    # Cargar datos
+    try:
+        df = pd.read_csv(uploaded_file)
         
-        if uploaded_file is not None:
-            try:
-                # Leer el archivo
-                df = pd.read_csv(uploaded_file)
-                st.sidebar.success(f"✅ Archivo cargado: {uploaded_file.name}")
-            except Exception as e:
-                st.sidebar.error(f"❌ Error al cargar archivo: {str(e)}")
-                return
-        else:
-            st.info("👈 Sube un archivo CSV o usa los datos de ejemplo desde la barra lateral")
-            return
+        # Mostrar preview
+        col1, col2, col3 = st.columns([2, 1, 1])
+        
+        with col1:
+            st.subheader("📋 Vista previa de los datos")
+            st.dataframe(df.head(10), use_container_width=True)
+        
+        with col2:
+            st.metric("Filas", f"{len(df):,}")
+            st.metric("Columnas", len(df.columns))
+        
+        with col3:
+            st.metric("Tamaño", f"{df.memory_usage(deep=True).sum() / 1024**2:.2f} MB")
+            missing_percent = (df.isnull().sum().sum() / (df.shape[0] * df.shape[1]) * 100)
+            st.metric("Datos faltantes", f"{missing_percent:.1f}%")
+        
+        # Botón de análisis
+        if st.button("🚀 Iniciar Análisis", type="primary", use_container_width=True):
+            with st.spinner("🤖 Los agentes están analizando tus datos..."):
+                # Progress bar
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                # Simular progreso
+                status_text.text("Inicializando agentes...")
+                progress_bar.progress(10)
+                time.sleep(1)
+                
+                # Ejecutar análisis optimizado
+                results = analyze_with_smart_analyzer(df)
+                
+                # Generar visualizaciones
+                status_text.text("📊 Generando visualizaciones...")
+                progress_bar.progress(75)
+                viz_engine = VisualizationEngine()
+                visualizations = viz_engine.generate_all_visualizations(df)
+                
+                progress_bar.progress(100)
+                status_text.text("¡Análisis completado!")
+                
+                # Guardar en session state
+                st.session_state['analysis_results'] = results
+                st.session_state['visualizations'] = visualizations
+                st.session_state['dataframe'] = df
+                
+                status_text.text("Detectando patrones...")
+                progress_bar.progress(60)
+                time.sleep(1)
+                
+                status_text.text("Generando reporte...")
+                progress_bar.progress(90)
+                time.sleep(1)
+                
+                progress_bar.progress(100)
+                status_text.text("¡Análisis completado!")
+                
+                # Mostrar resultados
+                st.success("✅ Análisis completado exitosamente")
+                
+                # Tabs para organizar resultados
+                tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Resumen", "🔍 Insights", "📈 Visualizaciones", "🎯 Anomalías", "📄 Reporte"])
+                
+                with tab1:
+                    st.markdown("### 📊 Resumen del Análisis")
+                    
+                    # Mostrar métricas clave
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        if df.select_dtypes(include=['number']).shape[1] > 0:
+                            st.metric("Media Global", f"{df.select_dtypes(include=['number']).mean().mean():.2f}")
+                    
+                    with col2:
+                        unique_ratio = df.nunique().mean() / len(df) * 100
+                        st.metric("Ratio de Unicidad", f"{unique_ratio:.1f}%")
+                    
+                    with col3:
+                        correlation_strength = 0
+                        numeric_cols = df.select_dtypes(include=['number']).columns
+                        if len(numeric_cols) > 1:
+                            corr_matrix = df[numeric_cols].corr()
+                            correlation_strength = (corr_matrix.abs().sum().sum() - len(numeric_cols)) / (len(numeric_cols) * (len(numeric_cols) - 1))
+                        st.metric("Correlación Promedio", f"{correlation_strength:.2f}")
+                    
+                    # Estadísticas descriptivas
+                    if df.select_dtypes(include=['number']).shape[1] > 0:
+                        st.markdown("#### Estadísticas Descriptivas")
+                        st.dataframe(df.describe(), use_container_width=True)
+                    
+                    # Tipos de datos
+                    st.markdown("#### Información de Variables")
+                    dtype_df = pd.DataFrame({
+                        'Variable': df.columns,
+                        'Tipo': df.dtypes.astype(str),
+                        'Valores únicos': [df[col].nunique() for col in df.columns],
+                        'Valores faltantes': df.isnull().sum().values,
+                        '% Faltantes': (df.isnull().sum() / len(df) * 100).round(2).values
+                    })
+                    st.dataframe(dtype_df, use_container_width=True)
+                
+                with tab2:
+                    st.markdown("### 🔍 Insights Descubiertos")
+                    
+                    # Mostrar secciones del análisis
+                    if 'sections' in results:
+                        sections = results['sections']
+                        
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
+                            st.markdown("#### 📊 Calidad de Datos")
+                            st.markdown("<div class='insight-box'>", unsafe_allow_html=True)
+                            st.write(sections.get('calidad', 'No disponible'))
+                            st.markdown("</div>", unsafe_allow_html=True)
+                            
+                            st.markdown("#### 🎯 Patrones Clave")
+                            st.markdown("<div class='insight-box'>", unsafe_allow_html=True)
+                            st.write(sections.get('patrones', 'No disponible'))
+                            st.markdown("</div>", unsafe_allow_html=True)
+                        
+                        with col2:
+                            st.markdown("#### 💡 Recomendaciones")
+                            st.markdown("<div class='insight-box'>", unsafe_allow_html=True)
+                            st.write(sections.get('recomendaciones', 'No disponible'))
+                            st.markdown("</div>", unsafe_allow_html=True)
+                            
+                            st.markdown("#### 📋 Resumen Ejecutivo")
+                            st.markdown("<div class='insight-box'>", unsafe_allow_html=True)
+                            st.write(sections.get('resumen', 'No disponible'))
+                            st.markdown("</div>", unsafe_allow_html=True)
+                    else:
+                        st.write(results.get('full_analysis', 'No se pudo generar el análisis'))
+                
+                with tab3:
+                    st.markdown("### 📈 Visualizaciones Automáticas")
+                    
+                    if 'visualizations' in st.session_state:
+                        viz_options = list(st.session_state['visualizations'].keys())
+                        
+                        # Selector de visualización
+                        selected_viz = st.selectbox(
+                            "Seleccionar visualización:",
+                            viz_options,
+                            format_func=lambda x: {
+                                'overview': '📊 Vista General',
+                                'distributions': '📈 Distribuciones',
+                                'correlation': '🔗 Correlaciones',
+                                'categorical': '📊 Variables Categóricas',
+                                'bivariate': '🔍 Análisis Bivariado',
+                                'outliers': '🎯 Detección de Outliers',
+                                'timeseries': '📅 Serie Temporal'
+                            }.get(x, x)
+                        )
+                        
+                        # Mostrar visualización seleccionada
+                        if selected_viz in st.session_state['visualizations']:
+                            fig = st.session_state['visualizations'][selected_viz]
+                            if fig is not None:
+                                st.plotly_chart(fig, use_container_width=True)
+                            else:
+                                st.info(f"No hay datos suficientes para generar: {selected_viz}")
+                        
+                        # Botón para descargar todas las visualizaciones
+                        with st.expander("💾 Opciones de exportación"):
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                if st.button("📥 Descargar visualización actual"):
+                                    fig = st.session_state['visualizations'][selected_viz]
+                                    if fig:
+                                        img_bytes = fig.to_image(format="png", width=1200, height=800)
+                                        st.download_button(
+                                            label="Descargar PNG",
+                                            data=img_bytes,
+                                            file_name=f"{selected_viz}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.png",
+                                            mime="image/png"
+                                        )
+                            
+                            with col2:
+                                st.info("Las visualizaciones también se incluyen en el reporte PDF")
+                
+                with tab4:
+                    st.markdown("### 🎯 Detección de Anomalías")
+                    
+                    numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
+                    
+                    if numeric_cols:
+                        selected_col = st.selectbox("Seleccionar variable para análisis de anomalías:", numeric_cols)
+                        
+                        if selected_col:
+                            # Detectar anomalías
+                            viz_engine = VisualizationEngine()
+                            anomalies, summary = viz_engine.detect_anomalies(df, selected_col)
+                            
+                            # Mostrar resumen
+                            col1, col2, col3 = st.columns(3)
+                            
+                            with col1:
+                                st.metric("Total de datos", summary['total_data_points'])
+                                st.metric("Media", f"{summary['mean']:.2f}")
+                            
+                            with col2:
+                                st.metric("Anomalías IQR", summary['iqr_anomalies'])
+                                st.metric("Desviación estándar", f"{summary['std']:.2f}")
+                            
+                            with col3:
+                                st.metric("Anomalías Z-Score", summary['zscore_anomalies'])
+                                st.metric("Asimetría", f"{summary['skewness']:.2f}")
+                            
+                            # Mostrar detalles
+                            with st.expander("📊 Ver detalles de anomalías"):
+                                st.write(f"**Límites IQR:** {summary['iqr_bounds'][0]:.2f} - {summary['iqr_bounds'][1]:.2f}")
+                                st.write(f"**Curtosis:** {summary['kurtosis']:.2f}")
+                                
+                                if summary['iqr_anomalies'] > 0:
+                                    st.write(f"**Índices de anomalías IQR:** {anomalies['iqr_outliers'][:10]}...")
+                                
+                                if summary['isolation_forest_anomalies'] > 0:
+                                    st.write(f"**Anomalías por Isolation Forest:** {summary['isolation_forest_anomalies']} detectadas")
+                            
+                            # Visualización de outliers
+                            if 'outliers' in st.session_state.get('visualizations', {}):
+                                st.plotly_chart(st.session_state['visualizations']['outliers'], use_container_width=True)
+                    else:
+                        st.info("No hay variables numéricas para análisis de anomalías")
+                
+                with tab5:
+                    st.markdown("### 📄 Reporte Final")
+                    
+                    # Vista previa del contenido
+                    #df = st.session_state.get("df", "dataset.csv")
+
+                    with st.expander("👁️ Vista previa del reporte"):
+                        report_content = f"""
+                            # Data Insight Report
+                            ## Dataset: {df}
+                            ## Fecha: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')}
+
+                            ### Resumen Ejecutivo
+                            {results.get('sections', {}).get('resumen', results.get('full_analysis', 'No disponible'))}
+
+                            ### Calidad de Datos
+                            {results.get('sections', {}).get('calidad', 'No disponible')}
+
+                            ### Patrones Identificados
+                            {results.get('sections', {}).get('patrones', 'No disponible')}
+
+                            ### Recomendaciones
+                            {results.get('sections', {}).get('recomendaciones', 'No disponible')}
+
+                            ### Información del Dataset
+                            - Total de filas: {len(df)}
+                            - Total de columnas: {len(df.columns)}
+                            - Tamaño en memoria: {df.memory_usage(deep=True).sum() / 1024**2:.2f} MB
+                        """
+                        st.text_area("", report_content, height=400)
+                    
+                    # Opciones de descarga
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        # Descargar como texto
+                        st.download_button(
+                            label="📥 Descargar Reporte (TXT)",
+                            data=report_content,
+                            file_name=f"reporte_{df}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.txt",
+                            mime="text/plain"
+                        )
+                    
+                    with col2:
+                        # Generar PDF
+                        if st.button("📑 Generar Reporte PDF", type="primary"):
+                            with st.spinner("Generando PDF..."):
+                                try:
+                                    # Crear generador de PDF
+                                    pdf_gen = PDFReportGenerator()
+                                    
+                                    # Preparar datos para el PDF
+                                    analysis_results = st.session_state.get('analysis_results', results)
+                                    analysis_results['dataset_name'] = df
+                                    
+                                    # Generar PDF
+                                    pdf_bytes = pdf_gen.generate_report(
+                                        df=df,
+                                        analysis_results=analysis_results,
+                                        visualizations=st.session_state.get('visualizations', {}),
+                                        filename="report.pdf"
+                                    )
+                                    
+                                    # Botón de descarga para PDF
+                                    st.download_button(
+                                        label="📥 Descargar PDF",
+                                        data=pdf_bytes,
+                                        file_name=f"data_insight_report_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.pdf",
+                                        mime="application/pdf"
+                                    )
+                                    
+                                    st.success("✅ PDF generado exitosamente!")
+                                except Exception as e:
+                                    st.error(f"Error al generar PDF: {str(e)}")
+                                    st.info("Instala las dependencias necesarias: pip install reportlab pillow kaleido")
+        
+    except Exception as e:
+        st.error(f"Error al procesar el archivo: {str(e)}")
+        st.info("Asegurate de que el archivo sea un CSV válido")
+
+else:
+    # Landing page
+    st.markdown("""
+    <div style='text-align: center; padding: 3rem;'>
+        <h2>👋 ¡Bienvenido a Data Insight Copilot!</h2>
+        <p style='font-size: 1.2rem; color: #666; margin: 2rem 0;'>
+            Transformá tus datos en insights accionables con el poder de la IA
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    # Información básica del dataset
-    st.header("📊 Información General del Dataset")
-    
-    col1, col2, col3, col4 = st.columns(4)
+    # Features
+    col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-        st.metric("📝 Filas", f"{len(df):,}")
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown("""
+        <div class='metric-card'>
+            <h3>🧹 Limpieza Automática</h3>
+            <p>Detecta y sugiere correcciones para problemas en los datos</p>
+        </div>
+        """, unsafe_allow_html=True)
     
     with col2:
-        st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-        st.metric("📋 Columnas", len(df.columns))
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown("""
+        <div class='metric-card'>
+            <h3>🔍 Detección de Patrones</h3>
+            <p>Encuentra correlaciones y anomalías ocultas</p>
+        </div>
+        """, unsafe_allow_html=True)
     
     with col3:
-        st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-        missing_count = df.isnull().sum().sum()
-        st.metric("❓ Valores Faltantes", f"{missing_count:,}")
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown("""
+        <div class='metric-card'>
+            <h3>📊 Reportes Inteligentes</h3>
+            <p>Genera resúmenes ejecutivos listos para presentar</p>
+        </div>
+        """, unsafe_allow_html=True)
     
-    with col4:
-        st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-        memory_usage = df.memory_usage(deep=True).sum() / 1024**2
-        st.metric("💾 Tamaño (MB)", f"{memory_usage:.2f}")
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Preview de los datos
-    st.header("👀 Vista Previa de los Datos")
-    st.dataframe(df.head(10), use_container_width=True)
-    
-    # Información de columnas
-    st.header("🔍 Información de Columnas")
-    
-    col_info = []
-    for col in df.columns:
-        col_info.append({
-            'Columna': col,
-            'Tipo': str(df[col].dtype),
-            'No Nulos': df[col].count(),
-            'Nulos': df[col].isnull().sum(),
-            '% Nulos': f"{(df[col].isnull().sum() / len(df)) * 100:.1f}%",
-            'Únicos': df[col].nunique()
-        })
-    
-    col_info_df = pd.DataFrame(col_info)
-    st.dataframe(col_info_df, use_container_width=True)
-    
-    # Análisis estadístico
-    numeric_cols = df.select_dtypes(include=[np.number]).columns
-    if len(numeric_cols) > 0:
-        st.header("📈 Estadísticas Descriptivas")
-        st.dataframe(df[numeric_cols].describe(), use_container_width=True)
-    
-    # Visualizaciones automáticas
-    st.header("📊 Visualizaciones Automáticas")
-    
-    visualizations = create_visualizations(df)
-    
-    for viz_type, col_name, fig in visualizations:
-        st.subheader(f"📊 {fig.layout.title.text}")
-        st.plotly_chart(fig, use_container_width=True)
-    
-    # Detección de outliers
-    if len(numeric_cols) > 0:
-        st.header("🎯 Detección de Anomalías")
-        
-        selected_col = st.selectbox("Selecciona columna para análisis de outliers:", numeric_cols)
-        
-        if selected_col:
-            outliers = detect_outliers(df, selected_col)
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.metric("🚨 Outliers Detectados", len(outliers))
-            
-            with col2:
-                if len(outliers) > 0:
-                    outlier_percentage = (len(outliers) / len(df)) * 100
-                    st.metric("📊 % del Total", f"{outlier_percentage:.2f}%")
-            
-            if len(outliers) > 0:
-                st.subheader("Valores Atípicos Encontrados:")
-                st.dataframe(outliers, use_container_width=True)
-    
-    # Insights automáticos básicos
-    st.header("💡 Insights Iniciales")
-    
-    insights = []
-    
-    # Dataset size insight
-    if len(df) > 10000:
-        insights.append("📊 Dataset grande: Más de 10,000 registros disponibles para análisis profundo.")
-    elif len(df) < 100:
-        insights.append("📊 Dataset pequeño: Considera recopilar más datos para obtener insights más robustos.")
-    
-    # Missing data insight
-    missing_percentage = (df.isnull().sum().sum() / (len(df) * len(df.columns))) * 100
-    if missing_percentage > 20:
-        insights.append("⚠️ Alta cantidad de datos faltantes: Considera estrategias de limpieza de datos.")
-    elif missing_percentage < 5:
-        insights.append("✅ Excelente calidad de datos: Muy pocos valores faltantes detectados.")
-    
-    # Numeric columns insight
-    if len(numeric_cols) > len(df.columns) * 0.7:
-        insights.append("🔢 Dataset predominantemente numérico: Ideal para análisis estadísticos y machine learning.")
-    
-    # Display insights
-    for insight in insights:
-        st.markdown(f'<div class="insight-box">{insight}</div>', unsafe_allow_html=True)
-    
-    # Footer con información del proyecto
-    st.markdown("---")
-    st.markdown("**Data Insight Copilot** v1.0 - Powered by **Joaquin Papagianacopoulos** 🚀")
-    st.markdown(f"*Análisis generado: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*")
-
-if __name__ == "__main__":
-    main()
+    st.markdown("""
+    <div style='text-align: center; margin-top: 3rem;'>
+        <p style='font-size: 1.1rem;'>
+            ⬅️ Subí tu archivo CSV desde la barra lateral para comenzar
+        </p>
+    </div>
+    """, unsafe_allow_html=True)

@@ -61,7 +61,23 @@ SYSTEM_MESSAGES = {
     "no_data": "📁 No hay datos para analizar",
     "processing": "⏳ Procesando datos...",
 }
+# Configuración de modelos Groq
+GROQ_MODELS = {
+    "fast": "groq/llama-3.1-8b-instant",      # Más rápido, bueno para tareas simples
+    "balanced": "groq/llama3-70b-8192",       # Balance entre velocidad y calidad
+    "powerful": "groq/llama-3.1-70b-versatile", # Más potente y versátil
+    "small": "groq/gemma2-9b-it"              # Más liviano
+}
 
+# Modelo por defecto
+DEFAULT_MODEL = GROQ_MODELS["small"]
+
+# Configuración de análisis
+ANALYSIS_CONFIG = {
+    "temperature": 0.7,
+    "max_tokens": 2048,
+    "timeout": 30  # segundos
+}
 # Límites de procesamiento
 PROCESSING_LIMITS = {
     "max_rows_preview": 1000,
